@@ -34,7 +34,7 @@ L.Control.Locate = L.Control.extend({
         this.startAnimation();
         navigator.geolocation.getCurrentPosition(this._processPosition.bind(this), null, {enableHighAccuracy: true});
     },
-    _processPosition: async function(position)  {
+    _processPosition: function(position)  {
         if (this._marker != null) {
             this._marker.remove();
         }
