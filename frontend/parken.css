@@ -1,6 +1,20 @@
-body, html {
-    margin: 0;
-    padding: 0
+body,
+html {
+	margin: 0;
+	padding: 0;
 }
 
-#map { height: 100vh }
+#map {
+	height: 50vh;
+}
+
+@media (min-width: 768px) {
+	#map,
+	#app {
+		float: left;
+	}
+	#map {
+		width: 67%;
+		height: 100vh;
+	}
+}
