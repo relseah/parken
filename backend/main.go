@@ -6,6 +6,11 @@ import (
 	"net/http"
 )
 
+type Coordinates struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
 type Address struct {
 	Street      string `json:"street"`
 	HouseNumber int    `json:"houseNumber"`
@@ -13,20 +18,25 @@ type Address struct {
 	PostalCode  int    `json:"postalCode"`
 }
 
-type ParkingLot struct {
-	Name     string  `json:"name"`
-	Address  Address `json:"address"`
-	Capacity int     `json:"capacity"`
+type Parking struct {
+	Name        string      `json:"name"`
+	Address     Address     `json:"address"`
+	Coordinates Coordinates `json:"coordinates"`
+	Capacity    int         `json:"capacity"`
 }
 
-var mock = []ParkingLot{
+var mock = []Parking{
 	{
 		Name: "P0 Am Bismarckplatz",
 		Address: Address{
-			Street:      "Schneidenmühlstraße",
+			Street:      "Schneidmühlstraße",
 			HouseNumber: 5,
 			Town:        "Heidelberg",
 			PostalCode:  69115,
+		},
+		Coordinates: Coordinates{
+			Latitude:  49.4096239,
+			Longitude: 8.691726098614684,
 		},
 		Capacity: 38,
 	},
@@ -38,11 +48,15 @@ var mock = []ParkingLot{
 			Town:        "Heidelberg",
 			PostalCode:  69115,
 		},
+		Coordinates: Coordinates{
+			Latitude:  49.40774055,
+			Longitude: 8.69046050266848,
+		},
 		Capacity: 528,
 	},
 }
 
-func parkingLots(w http.ResponseWriter, r *http.Request) {
+func parkings(w http.ResponseWriter, r *http.Request) {
 	payload, err := json.Marshal(mock)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -56,7 +70,7 @@ func parkingLots(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/api", parkingLots)
+	http.HandleFunc("/api", parkings)
 	http.Handle("/", http.FileServer(http.Dir("frontend")))
 	log.Fatalln(http.ListenAndServe(":8000", nil))
 }

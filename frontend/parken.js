@@ -7,19 +7,34 @@ function initializeMap() {
 	return map;
 }
 
-function initializeLocateControl(map) {
-	L.control.locate({ position: "bottomright" }).addTo(map);
+function markParkings(parkings) {
+	let factor = 2;
+	let icon = L.elementIcon(document.createElement("span"), {
+		className: `fa-solid fa-square-parking fa-${factor}x parking`,
+		size: [(7 / 8) * factor, factor],
+		sizeUnit: "em",
+	});
+	for (const parking of parkings) {
+		L.marker([parking.coordinates.latitude, parking.coordinates.longitude], {
+			icon: icon,
+		}).addTo(map);
+	}
 }
 
-let map = initializeMap();
-if ("geolocation" in navigator)
-	if ("permissions" in navigator)
-		navigator.permissions.query({ name: "geolocation" }).then((status) => {
-			if (status.state != "denied") {
-				initializeLocateControl(map);
-			}
-			status.onchange = function () {
-				if (this.state == "prompt") initializeLocateControl(map);
-			};
-		});
-	else initializeLocateControl();
+function processPosition(position) {}
+
+var map = initializeMap();
+var locateControl = L.control.locate(
+	function () {
+		this.addTo(map);
+		this.requestPosition();
+	},
+	{ position: "bottomright", onPosition: processPosition }
+);
+var parkings;
+fetch("api")
+	.then((response) => response.json())
+	.then((data) => {
+		parkings = data;
+		markParkings(parkings);
+	});

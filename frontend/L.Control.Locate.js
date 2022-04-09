@@ -1,18 +1,23 @@
 L.Control.Locate = L.Control.extend({
-	position: null,
+	// _available appears to cause a naming conflict.
+	_locationAvailable: false,
+	getAvailable: function () {
+		return this._locationAvailable;
+	},
+	setAvailable: function (available) {
+		this._locationAvailable = available;
+		if (available) this.onAvailable();
+	},
 	_firstPosition: true,
+	_geolocationWatchId: null,
 	coordinates: function () {
 		return L.latLng(
 			this.position.coords.latitude,
 			this.position.coords.longitude
 		);
 	},
-	_geolocationWatchId: null,
 	_button: document.createElement("button"),
 	_icon: document.createElement("span"),
-	// Avoid conflict with _map property of parent class.
-	_boundMap: null,
-	_marker: null,
 	options: {
 		iconClass: "fa-solid fa-location-dot fa-2x",
 		animationClass: "fa-fade",
@@ -25,31 +30,57 @@ L.Control.Locate = L.Control.extend({
 			enableHighAccuracy: true,
 			timeout: 10000,
 		},
+		onPosition: null,
 	},
-	initialize: function (options) {
+	initialize: function (onAvailable, options) {
+		this.onAvailable = onAvailable;
 		L.setOptions(this, options);
 		this._icon.classList = this.options.iconClass;
 		this._button.appendChild(this._icon);
+
+		if ("geolocation" in navigator)
+			if ("permissions" in navigator)
+				navigator.permissions.query({ name: "geolocation" }).then((status) => {
+					this.setAvailable(status.state != "denied");
+					status.onchange = () => {
+						if (status.state === "prompt") this.setAvailable(true);
+					};
+				});
+			else this.setAvailable(true);
 	},
 	addTo(map) {
+		if (!this.getAvailable()) {
+			return;
+		}
 		L.Control.prototype.addTo.call(this, map);
-		this.requestPosition();
 	},
 	onAdd: function (map) {
+		// Avoid conflict with _map property of parent class.
 		this._boundMap = map;
 		L.DomEvent.on(this._button, "click", this.onClick, this);
 		return this._button;
 	},
 	onRemove: function () {
+		if (this._marker) this._marker.remove();
+		this._stopAnimation();
 		L.DomEvent.off(this._button, "click", this.onClick, this);
-		navigator.geolocation.clearWatch(this._geolocationWatchId);
+		if (this._geolocationWatchId != null) {
+			navigator.geolocation.clearWatch(this._geolocationWatchId);
+			this._geolocationWatchId = null;
+		}
 		this._boundMap = null;
+		this._firstPosition = true;
 	},
 	onClick: function () {
-		if (this.position != null) this.flyToPosition();
+		if (this._geolocationWatchId === null) this.requestPosition();
+		else if (this.position) this.flyToPosition();
 	},
 	requestPosition: function () {
+		if (!this.getAvailable() || this._geolocationWatchId != null) {
+			return;
+		}
 		this._icon.classList.add(this.options.animationClass);
+		this._appliedAnimationClass = this.options.animationClass;
 		this._geolocationWatchId = navigator.geolocation.watchPosition(
 			this._processPosition.bind(this),
 			this._handleError.bind(this),
@@ -60,23 +91,30 @@ L.Control.Locate = L.Control.extend({
 		this._boundMap.flyTo(this.coordinates());
 	},
 	_processPosition: function (position) {
-		if (this._marker != null) this._marker.remove();
 		this.position = position;
+		if (this._marker) this._marker.remove();
 		this._marker = L.circleMarker(
 			this.coordinates(),
 			this.options.markerOptions
 		).addTo(this._boundMap);
+		if (this.options.onPosition != null) {
+			this.options.onPosition(position);
+		}
 		if (this._firstPosition) {
 			this.flyToPosition();
-			this._icon.classList.remove(this.options.animationClass);
+			this._stopAnimation();
 			this._firstPosition = false;
 		}
 	},
 	_handleError: function () {
 		this.remove();
+		this.setAvailable(false);
+	},
+	_stopAnimation: function () {
+		this._icon.classList.remove(this._appliedAnimationClass);
 	},
 });
 
-L.control.locate = function (options) {
-	return new L.Control.Locate(options);
+L.control.locate = function (onAvailable, options) {
+	return new L.Control.Locate(onAvailable, options);
 };
