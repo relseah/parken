@@ -1,24 +1,94 @@
+@font-face {
+	font-family: "Roboto Condensed";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("fonts/roboto-condensed/roboto-condensed-regular.ttf")
+		format("truetype");
+}
+
+:root {
+	--traffic-blue: #005a8c;
+}
+
+body {
+	font-family: "Roboto Condensed", sans-serif;
+}
+
 body,
 html {
 	margin: 0;
 	padding: 0;
 }
 
-#map {
+button {
+	background-color: var(--traffic-blue);
+	color: white;
+	border: solid var(--trafic-blue);
+	border-radius: 4px;
+	padding: 0.5em;
+	cursor: pointer;
+}
+
+button:disabled {
+	background-color: gray;
+	cursor: default;
+}
+
+#map,
+#app {
 	height: 50vh;
 }
 
-@media (min-width: 768px) {
+#app {
+	padding: 0.5em;
+	overflow-y: scroll;
+}
+
+@media (min-width: 48rem) {
 	#map,
 	#app {
+		height: 100vh;
 		float: left;
 	}
 	#map {
 		width: 67%;
-		height: 100vh;
+		float: left;
+	}
+	#app {
+		width: 33%;
+		box-sizing: border-box;
 	}
 }
 
-.parking {
-	color: #005a8c;
+.marker-parking {
+	color: var(--traffic-blue);
+}
+
+#parkings {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+}
+
+#parkings > li {
+	margin: 0.5em 0;
+}
+
+.parking-name {
+	font-size: 1.25em;
+	cursor: pointer;
+}
+
+.parking-address {
+	font-size: 0.75em;
+	color: gray;
+}
+
+.navigation {
+	float: right;
+}
+
+.parking-highlighted {
+	background-color: lightgray;
 }

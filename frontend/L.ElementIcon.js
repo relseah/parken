@@ -10,7 +10,7 @@ L.ElementIcon = L.Icon.extend({
 	createIcon: function (oldIcon) {
 		this.element.classList.add("leaflet-marker-icon");
 		if (this.options.className) {
-			for (className of this.options.className.split(" "))
+			for (let className of this.options.className.split(" "))
 				this.element.classList.add(className);
 		}
 
@@ -24,7 +24,7 @@ L.ElementIcon = L.Icon.extend({
 		let anchor;
 		let defaultAnchor = false;
 		if (this.options.iconAnchor) {
-			anchor = this.options.iconAnchor;
+			anchor = L.point(this.options.iconAnchor);
 		} else if (size) {
 			anchor = size.divideBy(2);
 			defaultAnchor = true;

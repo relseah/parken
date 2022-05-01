@@ -8,7 +8,10 @@ L.Control.Locate = L.Control.extend({
 		this._locationAvailable = available;
 		if (available) this.onAvailable();
 	},
-	_firstPosition: true,
+	_isFirstPosition: true,
+	getIsFirstPosition: function () {
+		return this._isFirstPosition;
+	},
 	_geolocationWatchId: null,
 	coordinates: function () {
 		return L.latLng(
@@ -21,11 +24,7 @@ L.Control.Locate = L.Control.extend({
 	options: {
 		iconClass: "fa-solid fa-location-dot fa-2x",
 		animationClass: "fa-fade",
-		markerOptions: {
-			radius: 5,
-			color: "steelblue",
-			fillOpacity: 1,
-		},
+		markerOptions: null,
 		geolocationOptions: {
 			enableHighAccuracy: true,
 			timeout: 10000,
@@ -36,14 +35,14 @@ L.Control.Locate = L.Control.extend({
 		this.onAvailable = onAvailable;
 		L.setOptions(this, options);
 		this._icon.classList = this.options.iconClass;
-		this._button.appendChild(this._icon);
+		this._button.append(this._icon);
 
 		if ("geolocation" in navigator)
 			if ("permissions" in navigator)
 				navigator.permissions.query({ name: "geolocation" }).then((status) => {
-					this.setAvailable(status.state != "denied");
+					this.setAvailable(status.state !== "denied");
 					status.onchange = () => {
-						if (status.state === "prompt") this.setAvailable(true);
+						if (status.state !== "prompt") this.setAvailable(true);
 					};
 				});
 			else this.setAvailable(true);
@@ -69,11 +68,11 @@ L.Control.Locate = L.Control.extend({
 			this._geolocationWatchId = null;
 		}
 		this._boundMap = null;
-		this._firstPosition = true;
+		this._isFirstPosition = true;
 	},
 	onClick: function () {
 		if (this._geolocationWatchId === null) this.requestPosition();
-		else if (this.position) this.flyToPosition();
+		else if (this.position) this.panToPosition();
 	},
 	requestPosition: function () {
 		if (!this.getAvailable() || this._geolocationWatchId != null) {
@@ -87,8 +86,8 @@ L.Control.Locate = L.Control.extend({
 			this.options.geolocationOptions
 		);
 	},
-	flyToPosition: function () {
-		this._boundMap.flyTo(this.coordinates());
+	panToPosition: function () {
+		this._boundMap.panTo(this.coordinates());
 	},
 	_processPosition: function (position) {
 		this.position = position;
@@ -100,10 +99,9 @@ L.Control.Locate = L.Control.extend({
 		if (this.options.onPosition != null) {
 			this.options.onPosition(position);
 		}
-		if (this._firstPosition) {
-			this.flyToPosition();
+		if (this.getIsFirstPosition()) {
 			this._stopAnimation();
-			this._firstPosition = false;
+			this._isFirstPosition = false;
 		}
 	},
 	_handleError: function () {

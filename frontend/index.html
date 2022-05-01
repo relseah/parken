@@ -1,18 +1,29 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<script defer src="leaflet/leaflet.js"></script>
-		<script defer src="L.Control.Locate.js"></script>
-		<script defer src="L.ElementIcon.js"></script>
-		<script defer src="parken.js"></script>
+		<script defer src="static/leaflet/leaflet.js"></script>
+		<script defer src="static/L.Control.Locate.js"></script>
+		<script defer src="static/L.ElementIcon.js"></script>
+		<script defer src="static/parken.js"></script>
 
-		<link rel="stylesheet" href="leaflet/leaflet.css" />
-		<link rel="stylesheet" href="parken.css" />
-		<link rel="stylesheet" href="fontawesome/css/fontawesome.min.css" />
-		<link rel="stylesheet" href="fontawesome/css/solid.min.css" />
+		<link rel="stylesheet" href="static/leaflet/leaflet.css" />
+		<link rel="stylesheet" href="static/parken.css" />
+		<link rel="stylesheet" href="static/fontawesome/css/fontawesome.min.css" />
+		<link rel="stylesheet" href="static/fontawesome/css/solid.min.css" />
 	</head>
 	<body>
 		<div id="map"></div>
-		<div id="app"></div>
+		<div id="app">
+			<button id="refresh" disabled>Nach Entfernung sortieren</button>
+			<ul id="parkings"></ul>
+			<p>
+				Dem Fehler im FileServer nachgehen.<br />
+				Der Pfad /static/index.html darf nicht verfügbar sein.<br />
+				Überwachen der Berechtigung an Chrome anpassen.<br />
+				Parkplätze serverseitig rendern.<br />
+				Timeouts spezifizieren.<br />
+				Verfügbare Parkplätze nur aktualisieren, wenn sich etwas geändert hat.
+			</p>
+		</div>
 	</body>
 </html>
