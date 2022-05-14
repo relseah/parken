@@ -82,11 +82,11 @@ func (s *Scraper) client() *http.Client {
 var ErrAPI = errors.New("returned status does not indicate success")
 
 var coordinates = map[int]parken.Coordinates{
-	0: parken.Coordinates{
+	0: {
 		Latitude:  49.4096239,
 		Longitude: 8.691726098614684,
 	},
-	1: parken.Coordinates{
+	1: {
 		Latitude:  49.40774055,
 		Longitude: 8.69046050266848,
 	},
@@ -104,7 +104,7 @@ func (s *Scraper) Scrape() ([]parken.Parking, error) {
 			Parkings []RawParking `json:"parkinglocations"`
 		}
 	}
-	file, err := os.Open("payload.json")
+	file, err := os.Open("parkings.json")
 	if err != nil {
 		return nil, err
 	}
