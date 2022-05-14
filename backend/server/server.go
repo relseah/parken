@@ -45,7 +45,7 @@ func (s *Server) parkingsHandler(w http.ResponseWriter, r *http.Request) {
 	payload, err := json.Marshal(s.parkings)
 	if err != nil {
 		httpError(w, http.StatusInternalServerError)
-		s.logln("parkings handler: ", err)
+		s.logln("parkings handler:", err)
 		return
 	}
 	w.Write(payload)
@@ -84,7 +84,7 @@ func (s *Server) ScheduleScraping(intervall time.Duration) {
 			case <-s.ticker.C:
 				err := s.scrape()
 				if err != nil {
-					s.logln("scraping: ", err)
+					s.logln("scraping:", err)
 				}
 			case <-s.done:
 				return
