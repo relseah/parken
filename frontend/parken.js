@@ -158,7 +158,7 @@ let refreshButton = document.getElementById("refresh");
 refreshButton.onclick = updateParkingsElement;
 
 let parkings;
-fetch("/api")
+fetch("/api/parkings")
 	.then((response) => response.json())
 	.then((data) => {
 		for (let parking of data) {

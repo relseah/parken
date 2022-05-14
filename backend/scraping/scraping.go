@@ -132,9 +132,10 @@ func (s *Scraper) Scrape() ([]parken.Parking, error) {
 		if err != nil {
 			return parkings, fmt.Errorf("parsing address %s: %w", raw.Address, err)
 		}
-		var website *url.URL
+		var website parken.URL
 		if raw.Website != "" {
-			website, err = url.Parse(raw.Website)
+			u, err := url.Parse(raw.Website)
+			website = parken.URL{URL: u}
 			if err != nil {
 				return parkings, fmt.Errorf("parsing website’s URL: %w", err)
 			}

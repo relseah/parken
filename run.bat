@@ -1,2 +1,3 @@
 call build.bat
-dist\parken.exe
+cd dist
+.\parken.exe

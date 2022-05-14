@@ -1,6 +1,20 @@
 package parken
 
-import "net/url"
+import (
+	"encoding/json"
+	"net/url"
+)
+
+type URL struct {
+	*url.URL
+}
+
+func (u URL) MarshalJSON() ([]byte, error) {
+	if u.URL == nil {
+		return json.Marshal(nil)
+	}
+	return json.Marshal(u.String())
+}
 
 type Coordinates struct {
 	Latitude  float64 `json:"latitude"`
@@ -21,7 +35,7 @@ type Parking struct {
 	Address        Address     `json:"address"`
 	Coordinates    Coordinates `json:"coordinates"`
 	PhoneNumber    string      `json:"phoneNumber"`
-	Website        *url.URL    `json:"website"`
+	Website        URL         `json:"website"`
 	Email          string      `json:"email"`
 	Prices         string      `json:"prices"`
 	LongTermPrices string      `json:"longTermPrices"`
