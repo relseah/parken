@@ -111,7 +111,7 @@ func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 			Parkings []RawParking `json:"parkinglocations"`
 		}
 	}
-	file, err := os.Open("parkings.json")
+	file, err := os.Open("payload.json")
 	if err != nil {
 		return Result{}, err
 	}
