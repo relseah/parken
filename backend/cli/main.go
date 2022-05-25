@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -25,18 +24,11 @@ func openDatabase(dataSourceName string) (*sql.DB, error) {
 	return db, db.Ping()
 }
 
-func initializeDatabase(config *config) error {
-	if config.Database.DataSourceName == "" {
-		return errors.New("no data source name specified")
-	}
-	db, err := openDatabase(config.Database.DataSourceName)
-	if err != nil {
-		return fmt.Errorf("opening database: %w", err)
-	}
-	if _, err = db.Exec("CREATE DATABASE parken"); err != nil {
+func initializeDatabase(db *sql.DB) error {
+	if _, err := db.Exec("CREATE DATABASE parken"); err != nil {
 		return fmt.Errorf("creating database: %w", err)
 	}
-	_, err = db.Exec(`CREATE TABLE parken.spots (
+	_, err := db.Exec(`CREATE TABLE parken.spots (
 parking_id INT NOT NULL,
 time DATETIME NOT NULL,
 free INT,
@@ -70,7 +62,7 @@ func runServer(config *config) error {
 		initialized := rows.Next()
 		rows.Close()
 		if !initialized {
-			initializeDatabase(config)
+			initializeDatabase(db)
 		}
 		if _, err = db.Exec("USE parken"); err != nil {
 			return err
@@ -101,6 +93,7 @@ func runServer(config *config) error {
 	case err = <-e:
 		return err
 	case <-interrupt:
+		interrupted = true
 		log.Println("Closing database connection...")
 		server.SetDB(nil)
 		db.Close()
