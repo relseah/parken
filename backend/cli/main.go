@@ -1,10 +1,16 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"flag"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/relseah/parken/scraping"
@@ -19,50 +25,94 @@ func openDatabase(dataSourceName string) (*sql.DB, error) {
 	return db, db.Ping()
 }
 
-func initializeDatabase(config *config) {
+func initializeDatabase(config *config) error {
 	if config.Database.DataSourceName == "" {
-		log.Fatalln("no data source name specified")
+		return errors.New("no data source name specified")
 	}
 	db, err := openDatabase(config.Database.DataSourceName)
 	if err != nil {
-		log.Fatalln("opening database:", err)
+		return fmt.Errorf("opening database: %w", err)
 	}
-	_, err = db.Exec("CREATE DATABASE parken")
-	if err != nil {
-		log.Fatalln("creating database:", err)
+	if _, err = db.Exec("CREATE DATABASE parken"); err != nil {
+		return fmt.Errorf("creating database: %w", err)
 	}
-	_, err = db.Exec(`CREATE TABLE parken.status (
+	_, err = db.Exec(`CREATE TABLE parken.spots (
 parking_id INT NOT NULL,
 time DATETIME NOT NULL,
-spots INT,
+free INT,
 PRIMARY KEY (parking_id, time))`)
 	if err != nil {
-		log.Fatalln("creating table:", err)
+		return fmt.Errorf("creating table: %w", err)
 	}
+	log.Println("Database initialized.")
+	return nil
 }
 
-func startServer(config *config) {
+func runServer(config *config) error {
+	var interrupted bool
+	close := func(c io.Closer) {
+		if !interrupted {
+			c.Close()
+		}
+	}
 	var db *sql.DB
 	if config.Database.DataSourceName != "" {
 		var err error
 		db, err = openDatabase(config.Database.DataSourceName)
 		if err != nil {
-			log.Fatalln("opening database:", err)
+			return fmt.Errorf("opening database connection: %w", err)
+		}
+		defer close(db)
+		rows, err := db.Query("SELECT 1 FROM information_schema.schemata WHERE schema_name = 'parken'")
+		if err != nil {
+			return err
+		}
+		initialized := rows.Next()
+		rows.Close()
+		if !initialized {
+			initializeDatabase(config)
+		}
+		if _, err = db.Exec("USE parken"); err != nil {
+			return err
 		}
 	}
-	httpServer := &http.Server{Addr: config.Server.Address}
-	server, err := server.NewServer(httpServer, &scraping.Scraper{}, 5*time.Second, log.Default(), db)
-	if err != nil {
-		log.Fatalln("initializing server:", err)
+	var addr string
+	if config.Server.Address == "" {
+		addr = ":80"
+	} else {
+		addr = config.Server.Address
 	}
-	log.Fatalln(server.ListenAndServe())
+	httpServer := &http.Server{Addr: addr}
+	server, err := server.NewServer(httpServer, &scraping.Scraper{}, time.Duration(config.Scraping.Interval), log.Default(), db)
+	if err != nil {
+		return fmt.Errorf("initializing server: %w", err)
+	}
+	defer close(server)
+
+	e := make(chan error)
+	go func() {
+		e <- server.ListenAndServe()
+	}()
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+	log.Println("Server running.")
+
+	select {
+	case err = <-e:
+		return err
+	case <-interrupt:
+		log.Println("Closing database connection...")
+		server.SetDB(nil)
+		db.Close()
+		log.Println("Shutting down server...")
+		server.Shutdown(context.Background())
+		return nil
+	}
 }
 
 func main() {
 	var configPath string
 	flag.StringVar(&configPath, "configuration", "config.json", "path to configuration")
-	var initialize bool
-	flag.BoolVar(&initialize, "initialize", false, "initialize database")
 	flag.Parse()
 
 	config, err := readConfig(configPath)
@@ -70,9 +120,8 @@ func main() {
 		log.Fatalln("reading configuration:", err)
 	}
 
-	if initialize {
-		initializeDatabase(config)
-	} else {
-		startServer(config)
+	err = runServer(config)
+	if err != nil {
+		log.Fatalln(err)
 	}
 }

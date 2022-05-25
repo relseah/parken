@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/relseah/parken"
 )
@@ -30,6 +31,11 @@ type RawParking struct {
 		Spots    int `json:"current"`
 		Capacity int `json:"total"`
 	} `json:"parkingupdate"`
+}
+
+type Result struct {
+	Updated  time.Time
+	Parkings []parken.Parking
 }
 
 var ErrAddressFormat = errors.New("invalid address format")
@@ -79,8 +85,6 @@ func (s *Scraper) client() *http.Client {
 	return http.DefaultClient
 }
 
-var ErrAPI = errors.New("returned status does not indicate success")
-
 var coordinates = map[int]parken.Coordinates{
 	0: {
 		Latitude:  49.4096239,
@@ -96,7 +100,10 @@ func (s *Scraper) ScrapeSpots() (map[int]int, error) {
 	return nil, nil
 }
 
-func (s *Scraper) Scrape() ([]parken.Parking, error) {
+var ErrAPI = errors.New("returned status does not indicate success")
+var ErrNoUpdate = errors.New("no more recent data available")
+
+func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 	type payload struct {
 		Status string
 		Data   struct {
@@ -106,38 +113,47 @@ func (s *Scraper) Scrape() ([]parken.Parking, error) {
 	}
 	file, err := os.Open("parkings.json")
 	if err != nil {
-		return nil, err
+		return Result{}, err
 	}
 	defer file.Close()
 	dec := json.NewDecoder(file)
 	pl := &payload{}
 	err = dec.Decode(pl)
 	if err != nil {
-		return nil, err
+		return Result{}, err
 	}
 	err = file.Close()
 	if err != nil {
-		return nil, err
+		return Result{}, err
 	}
 	if pl.Status != "success" {
-		return nil, ErrAPI
+		return Result{}, ErrAPI
 	}
-	parkings := make([]parken.Parking, 0, len(pl.Data.Parkings))
+	t, err := time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", pl.Data.Updated)
+	if err != nil {
+		return Result{}, err
+	}
+	t = t.UTC()
+	if t.Equal(updated) || t.Before(updated) {
+		return Result{}, ErrNoUpdate
+	}
+
+	res := Result{Updated: t, Parkings: make([]parken.Parking, 0, len(pl.Data.Parkings))}
 	for _, raw := range pl.Data.Parkings {
 		id, err := strconv.Atoi(raw.ID)
 		if err != nil {
-			return parkings, fmt.Errorf("parsing ID: %w", err)
+			return res, fmt.Errorf("parsing ID: %w", err)
 		}
 		address, err := ParseAddress(raw.Address)
 		if err != nil {
-			return parkings, fmt.Errorf("parsing address %s: %w", raw.Address, err)
+			return res, fmt.Errorf("parsing address %s: %w", raw.Address, err)
 		}
 		var website parken.URL
 		if raw.Website != "" {
 			u, err := url.Parse(raw.Website)
 			website = parken.URL{URL: u}
 			if err != nil {
-				return parkings, fmt.Errorf("parsing website’s URL: %w", err)
+				return res, fmt.Errorf("parsing website’s URL: %w", err)
 			}
 		}
 		p := parken.Parking{
@@ -156,7 +172,7 @@ func (s *Scraper) Scrape() ([]parken.Parking, error) {
 			Spots:          raw.Status.Spots,
 			Capacity:       raw.Status.Capacity,
 		}
-		parkings = append(parkings, p)
+		res.Parkings = append(res.Parkings, p)
 	}
-	return parkings, nil
+	return res, nil
 }
