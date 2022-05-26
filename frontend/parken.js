@@ -11,7 +11,7 @@ let highlightedParkingElement;
 function markParkings() {
 	let factor = 2;
 	let icon = L.elementIcon(document.createElement("span"), {
-		className: `fa-solid fa-square-parking fa-${factor}x marker-parking`,
+		className: `fa-solid fa-square-parking fa-${factor}x marker`,
 		// The icon's width is 7/8 of its height.
 		iconAnchor: [7 / 16, 0.5],
 		anchorUnit: "em",
@@ -32,6 +32,17 @@ function markParkings() {
 				highlightedParkingElement = parking.element;
 			}
 		});
+		marker.bindPopup(() => {
+			let popupDiv = document.createElement("div");
+			let nameStrong = createNameStrong(parking);
+			popupDiv.append(nameStrong);
+			let navigationButton = createNavigationButton(parking.address, 1);
+			popupDiv.append(navigationButton);
+			let occupancyDiv = createOccupancyDiv(parking);
+			popupDiv.append(occupancyDiv);
+			popupDiv.className = "popup";
+			return popupDiv;
+		});
 	}
 }
 
@@ -48,36 +59,64 @@ function formatAddress(address) {
 	}, ${address.postalCode} ${address.town}`;
 }
 
-function toElement(parking) {
-	let li = document.createElement("li");
+function createNavigationButton(address, sizeFactor) {
 	let navigationButton = document.createElement("button");
 	navigationButton.className = "navigation";
 	let navigationIcon = document.createElement("span");
-	navigationIcon.className = "fa-solid fa-route fa-2x";
+	navigationIcon.className = "fa-solid fa-route";
+	if (sizeFactor !== 1) {
+		navigationIcon.classList.add("fa-" + sizeFactor + "x");
+	}
 	navigationButton.append(navigationIcon);
 	navigationButton.addEventListener("click", () => {
-		redirectToNavigation(parking.address);
+		redirectToNavigation(address);
 	});
-	li.append(navigationButton);
+	return navigationButton;
+}
+
+function createNameStrong(parking) {
 	let nameStrong = document.createElement("strong");
 	nameStrong.textContent = `P${parking.id} ${parking.name}`;
-	nameStrong.className = "parking-name";
+	nameStrong.className = "name";
+	return nameStrong;
+}
+
+function createOccupancyDiv(parking) {
+	let occupancyDiv = document.createElement("div");
+	occupancyDiv.textContent = "Belegung: ";
+	let occupancySpan = document.createElement("span");
+	occupancySpan.textContent = `${parking.spots}/${parking.capacity}`;
+	let color;
+	if (parking.spots < 10) color = "red";
+	else if (parking.spots < 20) color = "orange";
+	else color = "green";
+	occupancySpan.className = "occupancy-" + color;
+	occupancyDiv.append(occupancySpan);
+	return occupancyDiv;
+}
+
+function convertToElement(parking) {
+	let li = document.createElement("li");
+	let navigationButton = createNavigationButton(parking.address, 2);
+	li.append(navigationButton);
+	let nameStrong = createNameStrong(parking);
 	nameStrong.onclick = () => {
 		map.panTo(parking.coordinates);
 	};
 	li.append(nameStrong);
 	let addressDiv = document.createElement("div");
 	addressDiv.textContent = formatAddress(parking.address);
-	addressDiv.className = "parking-address";
+	addressDiv.className = "address";
 	li.append(addressDiv);
-	let capacityDiv = document.createElement("div");
-	capacityDiv.textContent = "Kapazität: " + parking.capacity;
-	li.append(capacityDiv);
+	let occupancyDiv = createOccupancyDiv(parking);
+	li.append(occupancyDiv);
 	let distanceDiv = document.createElement("div");
-	distanceDiv.textContent = "Entfernung: -";
-	distanceDiv.className = "parking-distance";
+	distanceDiv.textContent = "Entfernung: ";
+	let distanceSpan = document.createElement("span");
+	distanceSpan.textContent = "-";
+	distanceDiv.append(distanceSpan);
 	li.append(distanceDiv);
-	parking.distanceDiv = distanceDiv;
+	parking.distanceSpan = distanceSpan;
 	li.append(document.createElement("hr"));
 	return li;
 }
@@ -123,9 +162,8 @@ function processPosition(position) {
 			unit = "km";
 			distance *= 0.001;
 		} else unit = "m";
-		parking.distanceDiv.textContent = `Entfernung: ${distance.toLocaleString(
-			"de-DE"
-		)} ${unit}`;
+		parking.distanceSpan.textContent =
+			distance.toLocaleString("de-DE") + " " + unit;
 		parking.distance = distance;
 	}
 	let identical = sortParkings();
@@ -162,7 +200,7 @@ fetch("/api/parkings")
 	.then((response) => response.json())
 	.then((data) => {
 		for (let parking of data) {
-			parking.element = toElement(parking);
+			parking.element = convertToElement(parking);
 			parking.coordinates = L.latLng(
 				parking.coordinates.latitude,
 				parking.coordinates.longitude

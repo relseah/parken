@@ -41,6 +41,6 @@ type Parking struct {
 	LongTermPrices string      `json:"longTermPrices"`
 	OpeningHours   string      `json:"openingHours"`
 	OpenAllDay     bool        `json:"openAllDay"`
-	Spots          int         `json:"available"`
+	Spots          int         `json:"spots"`
 	Capacity       int         `json:"capacity"`
 }

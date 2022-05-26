@@ -61,8 +61,12 @@ button:disabled {
 	}
 }
 
-.marker-parking {
+.marker {
 	color: var(--traffic-blue);
+}
+
+.popup {
+	display: flow-root;
 }
 
 #parkings {
@@ -75,14 +79,26 @@ button:disabled {
 	margin: 0.5em 0;
 }
 
-.parking-name {
+.name {
 	font-size: 1.25em;
 	cursor: pointer;
 }
 
-.parking-address {
+.address {
 	font-size: 0.75em;
 	color: gray;
+}
+
+.occupancy-green {
+	background-color: lightgreen;
+}
+
+.occupancy-orange {
+	background-color: orange;
+}
+
+.occupancy-red {
+	background-color: red;
 }
 
 .navigation {

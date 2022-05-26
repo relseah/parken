@@ -12,7 +12,6 @@ L.Control.Locate = L.Control.extend({
 	getIsFirstPosition: function () {
 		return this._isFirstPosition;
 	},
-	_geolocationWatchId: null,
 	coordinates: function () {
 		return L.latLng(
 			this.position.coords.latitude,
@@ -27,9 +26,7 @@ L.Control.Locate = L.Control.extend({
 		markerOptions: null,
 		geolocationOptions: {
 			enableHighAccuracy: true,
-			timeout: 10000,
 		},
-		onPosition: null,
 	},
 	initialize: function (onAvailable, options) {
 		this.onAvailable = onAvailable;
@@ -42,7 +39,7 @@ L.Control.Locate = L.Control.extend({
 				navigator.permissions.query({ name: "geolocation" }).then((status) => {
 					this.setAvailable(status.state !== "denied");
 					status.onchange = () => {
-						if (status.state !== "prompt") this.setAvailable(true);
+						if (status.state !== "denied") this.setAvailable(true);
 					};
 				});
 			else this.setAvailable(true);
@@ -63,7 +60,7 @@ L.Control.Locate = L.Control.extend({
 		if (this._marker) this._marker.remove();
 		this._stopAnimation();
 		L.DomEvent.off(this._button, "click", this.onClick, this);
-		if (this._geolocationWatchId != null) {
+		if (this._geolocationWatchId) {
 			navigator.geolocation.clearWatch(this._geolocationWatchId);
 			this._geolocationWatchId = null;
 		}
@@ -71,11 +68,11 @@ L.Control.Locate = L.Control.extend({
 		this._isFirstPosition = true;
 	},
 	onClick: function () {
-		if (this._geolocationWatchId === null) this.requestPosition();
+		if (!this._geolocationWatchId) this.requestPosition();
 		else if (this.position) this.panToPosition();
 	},
 	requestPosition: function () {
-		if (!this.getAvailable() || this._geolocationWatchId != null) {
+		if (!this.getAvailable() || this._geolocationWatchId) {
 			return;
 		}
 		this._icon.classList.add(this.options.animationClass);
@@ -96,7 +93,7 @@ L.Control.Locate = L.Control.extend({
 			this.coordinates(),
 			this.options.markerOptions
 		).addTo(this._boundMap);
-		if (this.options.onPosition != null) {
+		if (this.options.onPosition) {
 			this.options.onPosition(position);
 		}
 		if (this.getIsFirstPosition()) {
