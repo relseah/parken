@@ -23,11 +23,17 @@ func (d *duration) UnmarshalJSON(data []byte) error {
 }
 
 type config struct {
-	Server struct {
+	Web struct {
 		Address string
 	}
 	Scraping struct {
-		Interval duration
+		Interval  duration
+		Nominatim struct {
+			RateLimiting struct {
+				Rate     int
+				Interval duration
+			}
+		}
 	}
 	Database struct {
 		DataSourceName string

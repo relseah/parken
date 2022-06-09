@@ -1,4 +1,4 @@
 cd backend
-go build -o ..\dist\parken.exe .\cli
+go build -o ..\dist\parken.exe .\cmd
 cd ..\dist
 .\parken.exe %*

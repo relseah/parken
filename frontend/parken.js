@@ -1,8 +1,14 @@
 function initializeMap() {
-	let map = L.map("map").setView([49.41032, 8.69707], 13);
-	L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+	let map = L.map("map").setView([49.41032, 8.69707], 12);
+	L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png ", {
 		attribution:
 			'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+		/* minZoom: 7,
+		maxZoom: 12,
+		maxBounds: [
+			[7.959277, 48.300513],
+			[9.603785, 49.663763],
+		], */
 	}).addTo(map);
 	return map;
 }
@@ -145,8 +151,8 @@ function sortParkings() {
 	return identical;
 }
 
-function updateParkingsElement() {
-	refreshButton.disabled = true;
+function updateParkingsList() {
+	sortButton.disabled = true;
 	for (parking of parkings) {
 		parkingsElement.append(parking.element);
 	}
@@ -157,21 +163,16 @@ function processPosition(position) {
 	position = L.latLng(position.coords.latitude, position.coords.longitude);
 	for (let parking of parkings) {
 		let distance = Math.round(position.distanceTo(parking.coordinates));
-		let unit;
+		let displayDistance, unit;
 		if (distance > 999) {
 			unit = "km";
-			distance *= 0.001;
+			displayDistance = distance * 0.001;
 		} else unit = "m";
 		parking.distanceSpan.textContent =
 			distance.toLocaleString("de-DE") + " " + unit;
 		parking.distance = distance;
 	}
-	let identical = sortParkings();
-	if (identical) refreshButton.disabled = true;
-	else {
-		if (locateControl.getIsFirstPosition()) updateParkingsElement();
-		else refreshButton.disabled = false;
-	}
+	sortButton.disabled = sortParkings();
 }
 
 let map = initializeMap();
@@ -192,8 +193,8 @@ let locateControl = L.control.locate(
 	}
 );
 
-let refreshButton = document.getElementById("refresh");
-refreshButton.onclick = updateParkingsElement;
+let sortButton = document.getElementById("sort");
+sortButton.onclick = updateParkingsList;
 
 let parkings;
 fetch("/api/parkings")

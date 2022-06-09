@@ -14,7 +14,7 @@ import (
 	"github.com/relseah/parken"
 )
 
-type RawParking struct {
+type rawParking struct {
 	ID             string `json:"uid"`
 	Name           string
 	Operator       string `json:"management"`
@@ -79,36 +79,22 @@ type Scraper struct {
 }
 
 func (s *Scraper) client() *http.Client {
-	if s.Client != nil {
-		return s.Client
+	client := s.Client
+	if client != nil {
+		return client
 	}
 	return http.DefaultClient
-}
-
-var coordinates = map[int]parken.Coordinates{
-	0: {
-		Latitude:  49.4096239,
-		Longitude: 8.691726098614684,
-	},
-	1: {
-		Latitude:  49.40774055,
-		Longitude: 8.69046050266848,
-	},
-}
-
-func (s *Scraper) ScrapeSpots() (map[int]int, error) {
-	return nil, nil
 }
 
 var ErrAPI = errors.New("returned status does not indicate success")
 var ErrNoUpdate = errors.New("no more recent data available")
 
 func (s *Scraper) Scrape(updated time.Time) (Result, error) {
-	type payload struct {
+	type body struct {
 		Status string
 		Data   struct {
 			Updated  string
-			Parkings []RawParking `json:"parkinglocations"`
+			Parkings json.RawMessage `json:"parkinglocations"`
 		}
 	}
 	file, err := os.Open("payload.json")
@@ -117,8 +103,8 @@ func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 	}
 	defer file.Close()
 	dec := json.NewDecoder(file)
-	pl := &payload{}
-	err = dec.Decode(pl)
+	b := &body{}
+	err = dec.Decode(b)
 	if err != nil {
 		return Result{}, err
 	}
@@ -126,20 +112,26 @@ func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	if pl.Status != "success" {
+	if b.Status != "success" {
 		return Result{}, ErrAPI
 	}
-	t, err := time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", pl.Data.Updated)
+	t, err := time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", b.Data.Updated)
 	if err != nil {
 		return Result{}, err
 	}
 	t = t.UTC()
+	res := Result{Updated: t}
 	if t.Equal(updated) || t.Before(updated) {
-		return Result{}, ErrNoUpdate
+		return res, ErrNoUpdate
 	}
 
-	res := Result{Updated: t, Parkings: make([]parken.Parking, 0, len(pl.Data.Parkings))}
-	for _, raw := range pl.Data.Parkings {
+	var rawParkings []rawParking
+	err = json.Unmarshal(b.Data.Parkings, &rawParkings)
+	if err != nil {
+		return res, err
+	}
+	res.Parkings = make([]parken.Parking, 0, len(b.Data.Parkings))
+	for _, raw := range rawParkings {
 		id, err := strconv.Atoi(raw.ID)
 		if err != nil {
 			return res, fmt.Errorf("parsing ID: %w", err)
@@ -161,7 +153,6 @@ func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 			Name:           raw.Name,
 			Operator:       raw.Operator,
 			Address:        address,
-			Coordinates:    coordinates[id],
 			PhoneNumber:    raw.PhoneNumber,
 			Website:        website,
 			Email:          raw.Email,
