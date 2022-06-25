@@ -3,14 +3,23 @@ function initializeMap() {
 	L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png ", {
 		attribution:
 			'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-		/* minZoom: 7,
-		maxZoom: 12,
-		maxBounds: [
-			[7.959277, 48.300513],
-			[9.603785, 49.663763],
-		], */
 	}).addTo(map);
 	return map;
+}
+
+function highlightParkingElement(element, scroll) {
+	if (highlightedParkingElement) {
+		highlightedParkingElement.classList.remove("parking-highlighted");
+	}
+	if (highlightedParkingElement === element) {
+		highlightedParkingElement = null;
+	} else {
+		element.classList.add("parking-highlighted");
+		if (scroll) {
+			element.scrollIntoView();
+		}
+		highlightedParkingElement = element;
+	}
 }
 
 let highlightedParkingElement;
@@ -25,18 +34,9 @@ function markParkings() {
 	for (let parking of parkings) {
 		let marker = L.marker(parking.coordinates, {
 			icon: icon,
-		}).addTo(map);
+		});
 		marker.on("click", () => {
-			if (highlightedParkingElement) {
-				highlightedParkingElement.classList.remove("parking-highlighted");
-			}
-			if (highlightedParkingElement === parking.element) {
-				highlightedParkingElement = null;
-			} else {
-				parking.element.classList.add("parking-highlighted");
-				parking.element.scrollIntoView();
-				highlightedParkingElement = parking.element;
-			}
+			highlightParkingElement(parking.element, true);
 		});
 		marker.bindPopup(() => {
 			let popupDiv = document.createElement("div");
@@ -49,23 +49,19 @@ function markParkings() {
 			popupDiv.className = "popup";
 			return popupDiv;
 		});
+		marker.addTo(map);
+		parking.marker = marker;
 	}
 }
 
-function redirectToNavigation(address) {
+function redirectToNavigation(parking) {
 	url =
 		"https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" +
-		formatAddress(address);
+		`P${parking.id} ${parking.name}, Heidelberg`;
 	window.open(url, "_blank").focus();
 }
 
-function formatAddress(address) {
-	return `${address.street}${
-		address.houseNumber ? " " + address.houseNumber : ""
-	}, ${address.postalCode} ${address.town}`;
-}
-
-function createNavigationButton(address, sizeFactor) {
+function createNavigationButton(parking, sizeFactor) {
 	let navigationButton = document.createElement("button");
 	navigationButton.className = "navigation";
 	let navigationIcon = document.createElement("span");
@@ -75,7 +71,7 @@ function createNavigationButton(address, sizeFactor) {
 	}
 	navigationButton.append(navigationIcon);
 	navigationButton.addEventListener("click", () => {
-		redirectToNavigation(address);
+		redirectToNavigation(parking);
 	});
 	return navigationButton;
 }
@@ -101,13 +97,20 @@ function createOccupancyDiv(parking) {
 	return occupancyDiv;
 }
 
+function formatAddress(address) {
+	return `${address.street}${
+		address.houseNumber ? " " + address.houseNumber : ""
+	}, ${address.postalCode} ${address.town}`;
+}
+
 function convertToElement(parking) {
 	let li = document.createElement("li");
-	let navigationButton = createNavigationButton(parking.address, 2);
+	let navigationButton = createNavigationButton(parking, 2);
 	li.append(navigationButton);
 	let nameStrong = createNameStrong(parking);
 	nameStrong.onclick = () => {
-		map.panTo(parking.coordinates);
+		highlightParkingElement(parking.element, false);
+		parking.marker.togglePopup();
 	};
 	li.append(nameStrong);
 	let addressDiv = document.createElement("div");

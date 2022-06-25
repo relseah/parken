@@ -131,7 +131,8 @@ func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 		return res, err
 	}
 	res.Parkings = make([]parken.Parking, 0, len(b.Data.Parkings))
-	for _, raw := range rawParkings {
+	for i := 0; i < len(rawParkings); i++ {
+		raw := &rawParkings[i]
 		id, err := strconv.Atoi(raw.ID)
 		if err != nil {
 			return res, fmt.Errorf("parsing ID: %w", err)

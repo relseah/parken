@@ -1,2 +1,4 @@
 config.json
 dist
+docker-compose.yml
+Dockerfile

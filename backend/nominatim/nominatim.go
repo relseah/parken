@@ -2,7 +2,6 @@ package nominatim
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -79,9 +78,7 @@ func (c *Client) SetRate(rate int, interval time.Duration) {
 	}
 }
 
-var ErrNoResults = errors.New("no search results")
-
-func (c *Client) FetchCoordinates(parkingID int) (parken.Coordinates, error) {
+func (c *Client) Search(parking *parken.Parking) ([]parken.Coordinates, error) {
 	u := c.BaseURL
 	if u == nil {
 		u = defaultBaseURL
@@ -90,33 +87,39 @@ func (c *Client) FetchCoordinates(parkingID int) (parken.Coordinates, error) {
 	if u == defaultBaseURL {
 		q.Set("format", "jsonv2")
 	}
-	q.Set("q", "Heidelberg, P"+strconv.Itoa(parkingID))
+	q.Set("q", fmt.Sprintf("P%d %s, Heidelberg", parking.ID, parking.Name))
 	u.RawQuery = q.Encode()
 	u.Path = "/search"
 
 	c.limit()
 	resp, err := c.httpClient().Get(u.String())
 	if err != nil {
-		return parken.Coordinates{}, err
+		return nil, err
 	}
 	dec := json.NewDecoder(resp.Body)
 	var results []place
 	err = dec.Decode(&results)
 	resp.Body.Close()
 	if err != nil {
-		return parken.Coordinates{}, err
+		return nil, err
 	}
-	if len(results) == 0 {
-		return parken.Coordinates{}, ErrNoResults
-	}
-	var coordinates parken.Coordinates
-	coordinates.Latitude, err = strconv.ParseFloat(results[0].Latitude, 64)
-	if err != nil {
-		return parken.Coordinates{}, fmt.Errorf("parsing latitude: %w", err)
-	}
-	coordinates.Longitude, err = strconv.ParseFloat(results[0].Longitude, 64)
-	if err != nil {
-		return parken.Coordinates{}, fmt.Errorf("parsing longitude: %w", err)
+	coordinates := make([]parken.Coordinates, len(results))
+	for i, res := range results {
+		latitude, err := strconv.ParseFloat(res.Latitude, 64)
+		if err != nil {
+			return nil, fmt.Errorf("parsing latitude: %w", err)
+		}
+		longitude, err := strconv.ParseFloat(res.Longitude, 64)
+		if err != nil {
+			return nil, fmt.Errorf("parsing longitude: %w", err)
+		}
+		coordinates[i] = parken.Coordinates{Latitude: latitude, Longitude: longitude}
 	}
 	return coordinates, nil
+}
+
+func NewClient(rate int, interval time.Duration) *Client {
+	c := new(Client)
+	c.SetRate(rate, interval)
+	return c
 }

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"time"
+
+	"github.com/relseah/parken"
 )
 
 type duration time.Duration
@@ -27,13 +29,16 @@ type config struct {
 		Address string
 	}
 	Scraping struct {
-		Interval  duration
+		Interval duration
+	}
+	Coordinates struct {
 		Nominatim struct {
 			RateLimiting struct {
 				Rate     int
 				Interval duration
 			}
 		}
+		Presets map[int]parken.Coordinates
 	}
 	Database struct {
 		DataSourceName string
