@@ -24,7 +24,7 @@ html {
 button {
 	background-color: var(--traffic-blue);
 	color: white;
-	border: solid var(--trafic-blue);
+	border: solid var(--traffic-blue);
 	border-radius: 4px;
 	padding: 0.5em;
 	cursor: pointer;
@@ -32,6 +32,7 @@ button {
 
 button:disabled {
 	background-color: gray;
+	border-color: gray;
 	cursor: default;
 }
 
@@ -61,6 +62,16 @@ button:disabled {
 	}
 }
 
+.right {
+	float: right;
+	margin-left: 0.5em;
+}
+
+.electric-car-unchecked {
+	color: var(--traffic-blue);
+	background-color: white;
+}
+
 .marker {
 	color: var(--traffic-blue);
 }
@@ -84,11 +95,6 @@ button:disabled {
 	cursor: pointer;
 }
 
-.address {
-	font-size: 0.75em;
-	color: gray;
-}
-
 .occupancy-green {
 	background-color: lightgreen;
 }
@@ -101,10 +107,10 @@ button:disabled {
 	background-color: red;
 }
 
-.navigation {
-	float: right;
-}
-
 .parking-highlighted {
 	background-color: lightgray;
+}
+
+.info {
+	margin-top: 1em;
 }

@@ -199,7 +199,6 @@ func runServer(config *config) error {
 		return nil
 	}
 
-	log.Println("Initializing server...")
 	server, err := web.NewServer(httpServer, scraper, time.Duration(config.Scraping.Interval), coordinates, db, log.Default())
 	if err != nil {
 		return fmt.Errorf("initializing server: %w", err)
