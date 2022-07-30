@@ -1,4 +1,3 @@
-config.json
 dist
-docker-compose.yml
-Dockerfile
+config.json
+dummy.json
