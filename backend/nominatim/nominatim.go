@@ -3,6 +3,7 @@ package nominatim
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -22,6 +23,7 @@ type place struct {
 type Client struct {
 	BaseURL    *url.URL
 	HTTPClient *http.Client
+	Logger     log.Logger
 
 	rate      int
 	remaining int

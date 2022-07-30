@@ -17,6 +17,7 @@ import (
 type rawParking struct {
 	ID             string `json:"uid"`
 	Name           string
+	Closed         bool   `json:"is_closed"`
 	Operator       string `json:"management"`
 	Address        string
 	PhoneNumber    string `json:"phone"`
@@ -97,7 +98,7 @@ func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 			Parkings json.RawMessage `json:"parkinglocations"`
 		}
 	}
-	file, err := os.Open("payload.json")
+	file, err := os.Open("dummy.json")
 	if err != nil {
 		return Result{}, err
 	}
@@ -133,6 +134,9 @@ func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 	res.Parkings = make([]parken.Parking, 0, len(b.Data.Parkings))
 	for i := 0; i < len(rawParkings); i++ {
 		raw := &rawParkings[i]
+		if raw.Closed {
+			continue
+		}
 		id, err := strconv.Atoi(raw.ID)
 		if err != nil {
 			return res, fmt.Errorf("parsing ID: %w", err)

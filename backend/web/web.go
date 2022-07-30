@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/relseah/parken"
+	"github.com/relseah/parken/nominatim"
 	"github.com/relseah/parken/scraping"
 )
 
@@ -21,26 +23,37 @@ const timeLayout = "2006-01-02 15:04:05"
 type Server struct {
 	*http.Server
 	Scraper *scraping.Scraper
+	Client  *nominatim.Client
 	Logger  *log.Logger
 
 	cache []byte
 
-	parkings    []parken.Parking
-	updated     time.Time
-	coordinates map[int]parken.Coordinates
+	parkings      []parken.Parking
+	updated       time.Time
+	coordinates   map[int]parken.Coordinates
+	presets       map[int]parken.Coordinates
+	coordinatesDB map[int]parken.Coordinates
 
-	db              *sql.DB
-	dbMutex         sync.Mutex
-	insertSpotsStmt *sql.Stmt
+	db                    *sql.DB
+	dbMutex               sync.Mutex
+	insertCoordinatesStmt *sql.Stmt
+	insertSpotsStmt       *sql.Stmt
 
 	ticker *time.Ticker
 	done   chan struct{}
 }
 
+func (s *Server) logf(format string, v ...any) {
+	logger := s.Logger
+	if logger != nil {
+		logger.Printf(format, v...)
+	}
+}
+
 func (s *Server) logln(v ...any) {
 	logger := s.Logger
 	if logger != nil {
-		s.Logger.Println(v...)
+		logger.Println(v...)
 	}
 }
 
@@ -57,6 +70,59 @@ func (s *Server) parkingsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(s.cache)
 }
 
+func (s *Server) queryCoordinates() error {
+	s.dbMutex.Lock()
+	defer s.dbMutex.Unlock()
+	rows, err := s.DB().Query("SELECT parking_id, latitude, longitude FROM coordinates;")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	coordinates := make(map[int]parken.Coordinates)
+	var id int
+	var current parken.Coordinates
+	for rows.Next() {
+		rows.Scan(&id, &current.Latitude, &current.Longitude)
+		coordinates[id] = current
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	s.coordinatesDB = coordinates
+	return nil
+}
+
+func (s *Server) obtainCoordinates(p *parken.Parking) (parken.Coordinates, error) {
+	if preset, ok := s.presets[p.ID]; ok {
+		return preset, nil
+	}
+	if coordinates, ok := s.coordinatesDB[p.ID]; ok {
+		return coordinates, nil
+	}
+	results, err := s.Client.Search(p)
+	if err != nil {
+		return parken.Coordinates{}, fmt.Errorf("searching for coordinates of parking with ID %d: %w", p.ID, err)
+	}
+	if len(results) == 0 {
+		s.logf("No results for parking P%d %s.\n", p.ID, p.Name)
+	} else if len(results) > 1 {
+		var b strings.Builder
+		fmt.Fprintf(&b, "Multiple results for parking P%d %s.\n", p.ID, p.Name)
+		for i, c := range results {
+			fmt.Fprintf(&b, "%d. Latitude: %f°, longitude: %f°\n", i, c.Latitude, c.Longitude)
+		}
+		logger := s.Logger
+		if logger != nil {
+			logger.Print(b.String())
+		}
+	} else {
+		coordinates := results[0]
+		_, err = s.insertCoordinatesStmt.Exec(p.ID, coordinates.Latitude, coordinates.Longitude)
+		return coordinates, err
+	}
+	return parken.Coordinates{}, nil
+}
+
 func (s *Server) scrape() error {
 	res, err := s.Scraper.Scrape(s.updated)
 	if err != nil {
@@ -65,11 +131,16 @@ func (s *Server) scrape() error {
 		}
 		return err
 	}
-	var ok bool
 	for i := 0; i < len(res.Parkings); i++ {
-		res.Parkings[i].Coordinates, ok = s.coordinates[res.Parkings[i].ID]
-		if !ok {
-			return fmt.Errorf("missing coordinates for parking with ID %d", res.Parkings[i].ID)
+		p := &res.Parkings[i]
+		if coordinates, ok := s.coordinates[p.ID]; ok {
+			p.Coordinates = coordinates
+		} else {
+			coordinates, err := s.obtainCoordinates(p)
+			if err != nil {
+				return err
+			}
+			s.coordinates[p.ID], p.Coordinates = coordinates, coordinates
 		}
 	}
 
@@ -116,24 +187,29 @@ func (s *Server) DB() *sql.DB {
 }
 
 func (s *Server) SetDB(db *sql.DB) error {
-	closeStmt := func() {
+	closeStatements := func() {
 		if s.DB() != nil {
+			s.insertCoordinatesStmt.Close()
 			s.insertSpotsStmt.Close()
 		}
 	}
 	s.dbMutex.Lock()
 	defer s.dbMutex.Unlock()
 	if db == nil {
-		closeStmt()
+		closeStatements()
 		s.db = nil
 		return nil
+	}
+	insertCoordinatesStmt, err := db.Prepare("INSERT INTO coordinates (parking_id, latitude, longitude) VALUES (?, ?, ?);")
+	if err != nil {
+		return err
 	}
 	insertSpotsStmt, err := db.Prepare("INSERT INTO spots (parking_id, time, free) VALUES (?, ?, ?);")
 	if err != nil {
 		return err
 	}
-	closeStmt()
-	s.db, s.insertSpotsStmt = db, insertSpotsStmt
+	closeStatements()
+	s.db, s.insertCoordinatesStmt, s.insertSpotsStmt = db, insertCoordinatesStmt, insertSpotsStmt
 	return nil
 }
 
@@ -182,16 +258,22 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return s.Server.Shutdown(ctx)
 }
 
-func NewServer(httpServer *http.Server, scraper *scraping.Scraper, interval time.Duration, coordinates map[int]parken.Coordinates, db *sql.DB, logger *log.Logger) (*Server, error) {
+func NewServer(httpServer *http.Server, scraper *scraping.Scraper, scrapingInterval time.Duration, presets map[int]parken.Coordinates, client *nominatim.Client, db *sql.DB, logger *log.Logger) (*Server, error) {
 	if httpServer == nil {
 		httpServer = &http.Server{}
 	}
 	mux := http.NewServeMux()
 	httpServer.Handler = mux
-	server := &Server{Server: httpServer, Scraper: scraper, Logger: logger, coordinates: coordinates}
+	if client == nil {
+		client = &nominatim.Client{}
+	}
+	server := &Server{Server: httpServer, Scraper: scraper, coordinates: make(map[int]parken.Coordinates), presets: presets, Client: client, Logger: logger}
 
 	if db != nil {
 		if err := server.SetDB(db); err != nil {
+			return nil, err
+		}
+		if err := server.queryCoordinates(); err != nil {
 			return nil, err
 		}
 	}
@@ -209,7 +291,7 @@ func NewServer(httpServer *http.Server, scraper *scraping.Scraper, interval time
 	mux.HandleFunc("/api/parkings", server.parkingsHandler)
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("frontend"))))
 
-	server.ScheduleScraping(interval)
+	server.ScheduleScraping(scrapingInterval)
 
 	return server, nil
 }
