@@ -7,7 +7,7 @@ function initializeMap() {
 	return map;
 }
 
-var highlightedParkingElement;
+let highlightedParkingElement;
 function highlightParkingElement(element, scroll) {
 	if (highlightedParkingElement) {
 		highlightedParkingElement.classList.remove("parking-highlighted");
@@ -36,13 +36,33 @@ function prependHeading(heading, value) {
 	b.textContent = heading;
 	div.append(b);
 	div.append(document.createElement("br"));
-	div.append(document.createTextNode(value));
+	let lines = value.split("\n");
+	for (let i = 0; i < lines.length; i++) {
+		div.append(document.createTextNode(lines[i]));
+		if (i !== lines.length - 1) div.append(document.createElement("br"));
+	}
 	return div;
+}
+
+function createChargingStationsDiv(parking) {
+	let chargingStationsDiv = prependHeading(
+		"Ladesäulen",
+		parking.chargingStations
+	);
+	parking.chargingStationsDiv = chargingStationsDiv;
+	return chargingStationsDiv;
 }
 
 function createInfoDiv(parking) {
 	let div = document.createElement("div");
 	div.className = "info";
+	if (!chargingStationsCheckbox.checked && parking.chargingStations) {
+		div.append(
+			parking.chargingStationsDiv
+				? parking.chargingStationsDiv
+				: createChargingStationsDiv(parking)
+		);
+	}
 	let addressDiv = prependHeading("Adresse", formatAddress(parking.address));
 	addressDiv.className = "address";
 	div.append(addressDiv);
@@ -136,7 +156,7 @@ function convertToElement(parking) {
 	return li;
 }
 
-var markerIcon;
+let markerIcon;
 function markParking(parking) {
 	if (!markerIcon) {
 		markerIcon = L.elementIcon(document.createElement("span"), {
@@ -172,38 +192,84 @@ function markParking(parking) {
 	parking.marker = marker;
 }
 
-var parkingsElement;
+let parkingsUl = document.getElementById("parkings");
+let displayedParkings;
 function displayParkings() {
-	parkingsElement = document.getElementById("parkings");
 	for (parking of parkings) {
 		markParking(parking);
-		parkingsElement.append(parking.element);
+		parkingsUl.append(parking.element);
 	}
 	displayedParkings = [...parkings];
 }
 
-var displayedParkings;
+// Has displayedParkings changed? Requires updating parkingsUl.
+function updateParkingsUl() {
+	let elements = [];
+	for (parking of displayedParkings) {
+		elements.push(parking.element);
+	}
+	parkingsUl.replaceChildren(...elements);
+}
+
 function sortParkings() {
-	parkings.sort((a, b) => {
-		if (a.distance === b.distance) return 0;
-		return a.distance < b.distance ? -1 : 1;
-	});
-	let identical = true;
-	for (let i = 0; identical && i < parkings.length; i++) {
-		if (parkings[i] !== displayedParkings[i]) {
-			identical = false;
+	let comparator = sortByDistanceCheckbox.checked
+		? (a, b) => {
+				if (a.distance === b.distance) return 0;
+				return a.distance < b.distance ? -1 : 1;
+		  }
+		: (a, b) => {
+				return a.id < b.id ? -1 : 1;
+		  };
+	displayedParkings.sort(comparator);
+	updateParkingsUl();
+}
+let sortByDistanceCheckbox = document.getElementById("sort-by-distance");
+// Firefox caches the property. Therefore, it is not sufficient to set the attribute in HTML.
+sortByDistanceCheckbox.disabled = true;
+sortByDistanceCheckbox.addEventListener("change", sortParkings);
+
+function filterParkings() {
+	if (chargingStationsCheckbox.checked) {
+		for (let i = 0; i < displayedParkings.length; i++) {
+			if (!displayedParkings[i].chargingStations) {
+				displayedParkings.splice(i, 1);
+				i--;
+			}
+		}
+	} else {
+		for (parking of parkings) {
+			if (!parking.chargingStations) {
+				displayedParkings.push(parking);
+			}
 		}
 	}
-	return identical;
+	sortParkings();
 }
-
-function updateParkingsList() {
-	sortButton.disabled = true;
-	for (parking of parkings) {
-		parkingsElement.append(parking.element);
+let chargingStationsCheckbox = document.getElementById("charging-stations");
+// Firefox caches the property. Therefore, it is not sufficient to set the attribute in HTML.
+chargingStationsCheckbox.disabled = true;
+chargingStationsCheckbox.addEventListener("change", () => {
+	if (!chargingStationsCheckbox.checked) {
+		for (parking of displayedParkings) {
+			if (parking.infoDiv) {
+				parking.infoDiv.prepend(parking.chargingStationsDiv);
+			} else {
+				parking.chargingStationsDiv.remove();
+			}
+		}
 	}
-	displayedParkings = [...parkings];
-}
+	filterParkings();
+	if (chargingStationsCheckbox.checked) {
+		for (parking of displayedParkings) {
+			if (parking.chargingStations)
+				parking.element.append(
+					parking.chargingStationsDiv
+						? parking.chargingStationsDiv
+						: createChargingStationsDiv(parking)
+				);
+		}
+	}
+});
 
 function processPosition(position) {
 	position = L.latLng(position.coords.latitude, position.coords.longitude);
@@ -219,12 +285,14 @@ function processPosition(position) {
 			displayDistance.toLocaleString("de-DE") + " " + unit;
 		parking.distance = distance;
 	}
-	sortButton.disabled = sortParkings();
+	if (sortByDistanceCheckbox.checked) sortParkings();
+	else if (sortByDistanceCheckbox.disabled)
+		sortByDistanceCheckbox.disabled = false;
 }
 
-var map = initializeMap();
-var latestPosition;
-var locateControl = L.control.locate(
+let map = initializeMap();
+let latestPosition;
+let locateControl = L.control.locate(
 	function () {
 		this.addTo(map);
 		this.requestPosition();
@@ -240,28 +308,21 @@ var locateControl = L.control.locate(
 	}
 );
 
-var sortButton = document.getElementById("sort");
-sortButton.onclick = updateParkingsList;
-
-var parkings;
+let parkings;
 fetch("/api/parkings")
 	.then((response) => response.json())
-	.then((data) => {
-		for (let parking of data) {
+	.then((result) => {
+		for (let parking of result.parkings) {
 			parking.element = convertToElement(parking);
 			parking.coordinates = L.latLng(
 				parking.coordinates.latitude,
 				parking.coordinates.longitude
 			);
 		}
-		parkings = data;
+		parkings = result.parkings;
 		displayParkings();
+		chargingStationsCheckbox.disabled = false;
 		if (latestPosition) processPosition(latestPosition);
 		locateControl.options.onPosition = processPosition;
 		latestPosition = null;
-		let electricCarButton = document.getElementById("electric-car");
-		electricCarButton.onclick = () => {
-			electricCarButton.classList.toggle("electric-car-unchecked");
-		};
-		electricCarButton.disabled = false;
 	});

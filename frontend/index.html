@@ -1,36 +1,38 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<script defer src="static/leaflet/leaflet.js"></script>
-		<script defer src="static/L.Control.Locate.js"></script>
-		<script defer src="static/L.ElementIcon.js"></script>
-		<script defer src="static/parken.js"></script>
 
-		<link rel="stylesheet" href="static/leaflet/leaflet.css" />
-		<link rel="stylesheet" href="static/parken.css" />
-		<link rel="stylesheet" href="static/fontawesome/css/fontawesome.min.css" />
-		<link rel="stylesheet" href="static/fontawesome/css/solid.min.css" />
-	</head>
-	<body>
-		<div id="map"></div>
-		<div id="app">
-			<button id="sort" disabled>Nach Entfernung sortieren</button>
-			<button id="electric-car" class="electric-car-unchecked" disabled><span class="fa-solid fa-2x fa-charging-station"></span></button>
-			<ul id="parkings"></ul>
-			<p>
-				<h1>Kritisch</h1>
-				Timeouts spezifizieren.<br />
-				Format der Zeit mit einstelligen Tagen validieren.<br />
-				Zusätzliche Daten anzeigen.<br />
-				Tiles rendern.<br />
-				Karte auf Parkplatz zentrieren, wenn in der Liste ausgewählt.<br />
-				Zusätzliche Informationen einfliegen lassen.<br />
-				<h1>Langfristig</h1>
-				Koordinaten während der Laufzeit aus Datenbank und Konfigurationsdatei einlesen.<br/>
-				Verhindern, dass Parkhäuser am "Ursprung" des Koordinatensystems angezeigt werden, wenn die Koordinaten nicht (eindeutig) zugeorndet werden können.
-				Belegung laufend aktualisieren.<br />
-				Scraping abbrechen, wenn Signal empfangen wurde.
-			</p>
+<head>
+	<script defer src="static/leaflet/leaflet.js"></script>
+	<script defer src="static/L.Control.Locate.js"></script>
+	<script defer src="static/L.ElementIcon.js"></script>
+	<script defer src="static/parken.js"></script>
+
+	<link rel="stylesheet" href="static/leaflet/leaflet.css" />
+	<link rel="stylesheet" href="static/parken.css" />
+	<link rel="stylesheet" href="static/fontawesome/css/fontawesome.min.css" />
+	<link rel="stylesheet" href="static/fontawesome/css/solid.min.css" />
+</head>
+
+<body>
+	<div id="map"></div>
+	<div id="app">
+		<div id="preferences">
+			<label class="switch">
+				<!-- Firefox caches the disabled and checked attributes. -->
+				<input type="checkbox" id="sort-by-distance" autocomplete="off" disabled>
+				<span class="slider"></span>
+			</label>
+			<label for="sort-by-distance" class="switch-label">Nach Entfernung sortieren</label>
+			<label class="switch">
+				<input type="checkbox" id="charging-stations" autocomplete="off" disabled>
+				<span class="slider"></span>
+			</label>
+			<label for="charging-stations" class="switch-label">
+				<span class="fa-solid fa-charging-station fa-2x"></span>
+			</label>
 		</div>
-	</body>
+		<ul id="parkings"></ul>
+	</div>
+</body>
+
 </html>

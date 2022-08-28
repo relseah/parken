@@ -9,6 +9,7 @@
 
 :root {
 	--traffic-blue: #005a8c;
+	--border-radius: 4px;
 }
 
 body {
@@ -25,7 +26,7 @@ button {
 	background-color: var(--traffic-blue);
 	color: white;
 	border: solid var(--traffic-blue);
-	border-radius: 4px;
+	border-radius: var(--border-radius);
 	padding: 0.5em;
 	cursor: pointer;
 }
@@ -34,6 +35,38 @@ button:disabled {
 	background-color: gray;
 	border-color: gray;
 	cursor: default;
+}
+
+.switch > input[type="checkbox"] {
+	display: none;
+}
+
+.switch,
+.slider {
+	display: inline-block;
+	border-radius: var(--border-radius);
+}
+
+.switch {
+	height: 1em;
+	width: 2em;
+	padding: 0.25em 0.5em;
+	background-color: lightgray;
+}
+
+.slider {
+	height: 1em;
+	width: 1em;
+	background-color: white;
+}
+
+.switch > input[type="checkbox"]:checked + .slider {
+	transform: translateX(1em);
+	background-color: var(--traffic-blue);
+}
+
+.switch > input[type="checkbox"]:disabled + .slider {
+	display: none;
 }
 
 #map,
@@ -46,7 +79,7 @@ button:disabled {
 	overflow-y: scroll;
 }
 
-@media (min-width: 48rem) {
+@media (min-width: 62rem) {
 	#map,
 	#app {
 		height: 100vh;
@@ -67,17 +100,29 @@ button:disabled {
 	margin-left: 0.5em;
 }
 
-.electric-car-unchecked {
-	color: var(--traffic-blue);
-	background-color: white;
-}
-
 .marker {
 	color: var(--traffic-blue);
 }
 
 .popup {
 	display: flow-root;
+}
+
+#preferences {
+	display: flex;
+	align-items: center;
+}
+
+#preferences > .switch-label {
+	margin-left: 0.25em;
+}
+
+#preferences > .switch + .switch-label {
+	margin-right: 0.25em;
+}
+
+label[for="charging-stations"] > .fa-charging-station {
+	color: var(--traffic-blue);
 }
 
 #parkings {

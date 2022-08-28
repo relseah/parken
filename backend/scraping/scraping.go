@@ -15,19 +15,23 @@ import (
 )
 
 type rawParking struct {
-	ID             string `json:"uid"`
-	Name           string
-	Closed         bool   `json:"is_closed"`
-	Operator       string `json:"management"`
-	Address        string
-	PhoneNumber    string `json:"phone"`
-	Website        string
-	Email          string
-	Prices         string `json:"shortterm_parker"`
-	LongTermPrices string `json:"longterm_parker"`
-	OpeningHours   string `json:"opening_hours"`
-	OpenAllDay     bool   `json:"all_day"`
-	Status         struct {
+	ID               string `json:"uid"`
+	Name             string
+	Closed           bool   `json:"is_closed"`
+	Operator         string `json:"management"`
+	Address          string
+	PhoneNumber      string `json:"phone"`
+	Website          string
+	Email            string
+	Prices           string `json:"shortterm_parker"`
+	LongTermPrices   string `json:"longterm_parker"`
+	OpeningHours     string `json:"opening_hours"`
+	OpenAllDay       bool   `json:"all_day"`
+	ChargingStations string `json:"e_charge_station"`
+	Zone             struct {
+		ID, Name string
+	} `json:"parkingzone"`
+	Status struct {
 		// General  string `json:"status"`
 		Spots    int `json:"current"`
 		Capacity int `json:"total"`
@@ -35,8 +39,9 @@ type rawParking struct {
 }
 
 type Result struct {
-	Updated  time.Time
-	Parkings []parken.Parking
+	Updated  time.Time        `json:"updated"`
+	Zones    map[int]string   `json:"zones"`
+	Parkings []parken.Parking `json:"parkings"`
 }
 
 var ErrAddressFormat = errors.New("invalid address format")
@@ -131,6 +136,7 @@ func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 	if err != nil {
 		return res, err
 	}
+	res.Zones = make(map[int]string)
 	res.Parkings = make([]parken.Parking, 0, len(b.Data.Parkings))
 	for i := 0; i < len(rawParkings); i++ {
 		raw := &rawParkings[i]
@@ -140,6 +146,10 @@ func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 		id, err := strconv.Atoi(raw.ID)
 		if err != nil {
 			return res, fmt.Errorf("parsing ID: %w", err)
+		}
+		zoneID, err := strconv.Atoi(raw.Zone.ID)
+		if err != nil {
+			return res, fmt.Errorf("parsing ID of zone: %w", err)
 		}
 		address, err := ParseAddress(raw.Address)
 		if err != nil {
@@ -153,20 +163,26 @@ func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 				return res, fmt.Errorf("parsing website’s URL: %w", err)
 			}
 		}
+		// to-do: Verify consistency between ID and name.
+		if _, ok := res.Zones[zoneID]; !ok {
+			res.Zones[zoneID] = raw.Zone.Name
+		}
 		p := parken.Parking{
-			ID:             id,
-			Name:           raw.Name,
-			Operator:       raw.Operator,
-			Address:        address,
-			PhoneNumber:    raw.PhoneNumber,
-			Website:        website,
-			Email:          raw.Email,
-			Prices:         raw.Prices,
-			LongTermPrices: raw.LongTermPrices,
-			OpeningHours:   raw.OpeningHours,
-			OpenAllDay:     raw.OpenAllDay,
-			Spots:          raw.Status.Spots,
-			Capacity:       raw.Status.Capacity,
+			ID:               id,
+			Name:             raw.Name,
+			Zone:             zoneID,
+			Operator:         raw.Operator,
+			Address:          address,
+			PhoneNumber:      raw.PhoneNumber,
+			Website:          website,
+			Email:            raw.Email,
+			Prices:           raw.Prices,
+			LongTermPrices:   raw.LongTermPrices,
+			OpeningHours:     raw.OpeningHours,
+			OpenAllDay:       raw.OpenAllDay,
+			ChargingStations: raw.ChargingStations,
+			Spots:            raw.Status.Spots,
+			Capacity:         raw.Status.Capacity,
 		}
 		res.Parkings = append(res.Parkings, p)
 	}

@@ -1,0 +1,13 @@
+Kritisch
+- Timeouts spezifizieren.
+- Format der Zeit mit einstelligen Tagen validieren.
+- Zusätzliche Daten anzeigen.
+- Tiles rendern.
+- Karte auf Parkplatz zentrieren, wenn in der Liste ausgewählt.
+- Zusätzliche Informationen einfliegen lassen.
+
+Langfristig
+- Koordinaten während der Laufzeit aus Datenbank und Konfigurationsdatei einlesen.
+- Verhindern, dass Parkhäuser am "Ursprung" des Koordinatensystems angezeigt werden, wenn die Koordinaten nicht (eindeutig) zugeorndet werden können. Belegung laufend aktualisieren.<br />
+- Scraping abbrechen, wenn Signal empfangen wurde.
+- Leere Felder nicht übertragen.

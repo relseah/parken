@@ -67,6 +67,8 @@ func httpError(w http.ResponseWriter, code int) {
 }
 
 func (s *Server) parkingsHandler(w http.ResponseWriter, r *http.Request) {
+	// The correct Content-Type is not detected.
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(s.cache)
 }
 
@@ -144,7 +146,7 @@ func (s *Server) scrape() error {
 		}
 	}
 
-	cache, err := json.Marshal(res.Parkings)
+	cache, err := json.Marshal(res)
 	if err != nil {
 		return err
 	}

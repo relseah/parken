@@ -29,18 +29,20 @@ type Address struct {
 }
 
 type Parking struct {
-	ID             int         `json:"id"`
-	Name           string      `json:"name"`
-	Operator       string      `json:"operator"`
-	Address        Address     `json:"address"`
-	Coordinates    Coordinates `json:"coordinates"`
-	PhoneNumber    string      `json:"phoneNumber"`
-	Website        URL         `json:"website"`
-	Email          string      `json:"email"`
-	Prices         string      `json:"prices"`
-	LongTermPrices string      `json:"longTermPrices"`
-	OpeningHours   string      `json:"openingHours"`
-	OpenAllDay     bool        `json:"openAllDay"`
-	Spots          int         `json:"spots"`
-	Capacity       int         `json:"capacity"`
+	ID               int         `json:"id"`
+	Name             string      `json:"name"`
+	Zone             int         `json:"zone"`
+	Operator         string      `json:"operator"`
+	Address          Address     `json:"address"`
+	Coordinates      Coordinates `json:"coordinates"`
+	PhoneNumber      string      `json:"phoneNumber"`
+	Website          URL         `json:"website"`
+	Email            string      `json:"email"`
+	Prices           string      `json:"prices"`
+	LongTermPrices   string      `json:"longTermPrices"`
+	OpeningHours     string      `json:"openingHours"`
+	OpenAllDay       bool        `json:"openAllDay"`
+	ChargingStations string      `json:"chargingStations,omitempty"`
+	Spots            int         `json:"spots"`
+	Capacity         int         `json:"capacity"`
 }
