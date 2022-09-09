@@ -224,8 +224,6 @@ function sortParkings() {
 	updateParkingsUl();
 }
 let sortByDistanceCheckbox = document.getElementById("sort-by-distance");
-// Firefox caches the property. Therefore, it is not sufficient to set the attribute in HTML.
-sortByDistanceCheckbox.disabled = true;
 sortByDistanceCheckbox.addEventListener("change", sortParkings);
 
 function filterParkings() {
@@ -246,8 +244,6 @@ function filterParkings() {
 	sortParkings();
 }
 let chargingStationsCheckbox = document.getElementById("charging-stations");
-// Firefox caches the property. Therefore, it is not sufficient to set the attribute in HTML.
-chargingStationsCheckbox.disabled = true;
 chargingStationsCheckbox.addEventListener("change", () => {
 	if (!chargingStationsCheckbox.checked) {
 		for (parking of displayedParkings) {
