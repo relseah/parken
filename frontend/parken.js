@@ -1,6 +1,15 @@
 function initializeMap() {
-	let map = L.map("map").setView([49.41032, 8.69707], 12);
-	L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png ", {
+	let map = L.map("map", {
+		center: [49.41, 8.7],
+		zoom: 12,
+		minZoom: 10,
+		maxZoom: 17,
+		maxBounds: [
+			[48.3, 7.95],
+			[49.67, 9.61],
+		],
+	});
+	L.tileLayer("/tiles/{z}/{x}/{y}.png", {
 		attribution:
 			'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 	}).addTo(map);
@@ -282,8 +291,12 @@ function processPosition(position) {
 		parking.distance = distance;
 	}
 	if (sortByDistanceCheckbox.checked) sortParkings();
-	else if (sortByDistanceCheckbox.disabled)
+	else if (sortByDistanceCheckbox.disabled) {
+		// first position
 		sortByDistanceCheckbox.disabled = false;
+		sortByDistanceCheckbox.checked = true;
+		sortParkings();
+	}
 }
 
 let map = initializeMap();

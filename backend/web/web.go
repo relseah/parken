@@ -292,6 +292,7 @@ func NewServer(httpServer *http.Server, scraper *scraping.Scraper, scrapingInter
 	})
 	mux.HandleFunc("/api/parkings", server.parkingsHandler)
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("frontend"))))
+	mux.Handle("/tiles/", http.StripPrefix("/tiles/", http.FileServer(http.Dir("tiles"))))
 
 	server.ScheduleScraping(scrapingInterval)
 
