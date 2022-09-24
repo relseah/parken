@@ -321,6 +321,27 @@ let parkings;
 fetch("/api/parkings")
 	.then((response) => response.json())
 	.then((result) => {
+		let updated = Date.parse(result.updated);
+		let updatedSpan = document.getElementById("updated");
+		let interval;
+		function update() {
+			let elapsed = (Date.now() - updated) / 60000;
+			let difference;
+			if (elapsed < 1) {
+				difference = "weniger als einer Minute";
+			} else if (elapsed < 60) {
+				difference = Math.round(elapsed) + " Minuten";
+			} else if (elapsed < 1440) {
+				difference = Math.round(elapsed / 60) + "Stunden";
+			} else {
+				difference = "mehr als einem Tag";
+				if (interval) clearInterval(interval);
+			}
+			updatedSpan.textContent = difference;
+		}
+		update();
+		// to-do: Compute exact time to update the span.
+		interval = setInterval(update, 60000);
 		for (let parking of result.parkings) {
 			parking.element = convertToElement(parking);
 			parking.coordinates = L.latLng(
