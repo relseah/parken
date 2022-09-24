@@ -181,7 +181,7 @@ func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 			OpeningHours:     raw.OpeningHours,
 			OpenAllDay:       raw.OpenAllDay,
 			ChargingStations: raw.ChargingStations,
-			Spots:            raw.Status.Spots,
+			Spots:            raw.Status.Capacity - raw.Status.Spots,
 			Capacity:         raw.Status.Capacity,
 		}
 		res.Parkings = append(res.Parkings, p)
