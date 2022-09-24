@@ -173,7 +173,7 @@ func (s *Server) scrape() error {
 	s.updated, s.parkings, s.cache = res.Updated, res.Parkings, cache
 	s.dbMutex.Lock()
 	defer s.dbMutex.Unlock()
-	if s.DB() != nil && !timeDB.IsZero() && s.updated.After(timeDB) {
+	if s.DB() != nil && timeDB.IsZero() || s.updated.After(timeDB) {
 		for i := 0; i < len(res.Parkings); i++ {
 			if _, err := s.insertSpotsStmt.Exec(res.Parkings[i].ID,
 				res.Updated.Format(timeLayout), res.Parkings[i].Spots); err != nil {
