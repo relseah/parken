@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"mime"
 	"net/http"
 	"strings"
 	"sync"
@@ -70,6 +71,32 @@ func (s *Server) parkingsHandler(w http.ResponseWriter, r *http.Request) {
 	// The correct Content-Type is not detected.
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(s.cache)
+}
+
+func compressedFileServer(root http.FileSystem, extensions []string) http.Handler {
+	handler := http.FileServer(root)
+	// Unclear, whether the mime package caches the types.
+	types := make(map[string]string)
+	for _, extension := range extensions {
+		types[extension] = mime.TypeByExtension(extension)
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for _, extension := range extensions {
+			if strings.HasSuffix(r.URL.Path, extension) {
+				accepted := strings.Split(r.Header.Get("Accept-Encoding"), ", ")
+				for _, encoding := range accepted {
+					if encoding == "gzip" {
+						r.URL.Path += ".gz"
+						w.Header().Add("Content-Encoding", "gzip")
+						w.Header().Add("Content-Type", types[extension])
+						break
+					}
+				}
+				break
+			}
+		}
+		handler.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) queryCoordinates() error {
@@ -291,7 +318,9 @@ func NewServer(httpServer *http.Server, scraper *scraping.Scraper, scrapingInter
 		http.ServeFile(w, r, "frontend/index.html")
 	})
 	mux.HandleFunc("/api/parkings", server.parkingsHandler)
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("frontend"))))
+	// dirty
+	mime.AddExtensionType(".ttf", "font/ttf")
+	mux.Handle("/static/", http.StripPrefix("/static/", compressedFileServer(http.Dir("frontend"), []string{".html", ".css", ".js", ".ttf"})))
 	mux.Handle("/tiles/", http.StripPrefix("/tiles/", http.FileServer(http.Dir("tiles"))))
 
 	server.ScheduleScraping(scrapingInterval)
