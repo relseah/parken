@@ -98,7 +98,8 @@ func runServer(config *config) error {
 	} else {
 		addr = config.Web.Address
 	}
-	httpServer := &http.Server{Addr: addr}
+	httpServer := &http.Server{Addr: addr, ReadTimeout: time.Duration(config.Web.ReadTimeout),
+		WriteTimeout: time.Duration(config.Web.WriteTimeout)}
 	scraper := new(scraping.Scraper)
 
 	db, err := openDB(config)

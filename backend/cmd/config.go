@@ -26,7 +26,9 @@ func (d *duration) UnmarshalJSON(data []byte) error {
 
 type config struct {
 	Web struct {
-		Address string
+		Address      string
+		ReadTimeout  duration
+		WriteTimeout duration
 	}
 	Scraping struct {
 		Interval duration
