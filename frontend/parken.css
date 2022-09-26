@@ -79,18 +79,17 @@ button:disabled {
 	overflow-y: scroll;
 }
 
-@media (min-width: 62rem) {
+@media (min-width: 62rem), (orientation: landscape) {
 	#map,
 	#app {
 		height: 100vh;
 		float: left;
 	}
 	#map {
-		width: 67%;
-		float: left;
+		width: 60%;
 	}
 	#app {
-		width: 33%;
+		width: 40%;
 		box-sizing: border-box;
 	}
 }
