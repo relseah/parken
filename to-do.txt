@@ -3,6 +3,6 @@ Kritisch
 Langfristig
 - Format der Zeit mit einstelligen Tagen validieren.
 - Koordinaten während der Laufzeit aus Datenbank und Konfigurationsdatei einlesen.
-- Verhindern, dass Parkhäuser am "Ursprung" des Koordinatensystems angezeigt werden, wenn die Koordinaten nicht (eindeutig) zugeorndet werden können. Belegung laufend aktualisieren.<br />
+- Belegung laufend aktualisieren.
 - Scraping abbrechen, wenn Signal empfangen wurde.
 - Leere Felder nicht übertragen.
