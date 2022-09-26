@@ -2,3 +2,4 @@ dist
 config.json
 dummy.json
 tiles
+.vscode
