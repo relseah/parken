@@ -1,4 +1,5 @@
 Kritisch
+- Favicon hinzufügen.
 
 Langfristig
 - Format der Zeit mit einstelligen Tagen validieren.
