@@ -328,13 +328,13 @@ fetch("/api/parkings")
 			let elapsed = (Date.now() - updated) / 60000;
 			let difference;
 			if (elapsed < 1) {
-				difference = "weniger als einer Minute";
+				difference = "weniger als eine Minute";
 			} else if (elapsed < 60) {
 				difference = Math.round(elapsed) + " Minuten";
 			} else if (elapsed < 1440) {
 				difference = Math.round(elapsed / 60) + "Stunden";
 			} else {
-				difference = "mehr als einem Tag";
+				difference = "mehr als ein Tag";
 				if (interval) clearInterval(interval);
 			}
 			updatedSpan.textContent = difference;
