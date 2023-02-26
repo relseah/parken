@@ -107,6 +107,17 @@ button:disabled {
 	display: flow-root;
 }
 
+#disclaimer {
+	color: white;
+	background-color: var(--traffic-blue);
+	border: solid var(--traffic-blue);
+	border-radius: var(--border-radius);
+}
+
+#official-site {
+	color: white;
+}
+
 #preferences {
 	display: flex;
 	align-items: center;
