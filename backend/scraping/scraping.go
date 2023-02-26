@@ -103,21 +103,34 @@ func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 			Parkings json.RawMessage `json:"parkinglocations"`
 		}
 	}
+
 	file, err := os.Open("dummy.json")
 	if err != nil {
 		return Result{}, err
 	}
-	defer file.Close()
 	dec := json.NewDecoder(file)
 	b := &body{}
 	err = dec.Decode(b)
+	file.Close()
 	if err != nil {
 		return Result{}, err
 	}
-	err = file.Close()
-	if err != nil {
-		return Result{}, err
-	}
+	/*
+		req, _ := http.NewRequest("GET", "https://parken.heidelberg.de/v1/parking-location?key=3wU8F-5QycD-ZbaW9-R6uvj-xm1MG-X07ne", nil)
+		req.Header.Set("User-Agent", "")
+		resp, err := s.client().Do(req)
+		if err != nil {
+			return Result{}, err
+		}
+		dec := json.NewDecoder(resp.Body)
+		b := &body{}
+		err = dec.Decode(b)
+		resp.Body.Close()
+		if err != nil {
+			return Result{}, err
+		}
+	*/
+
 	if b.Status != "success" {
 		return Result{}, ErrAPI
 	}
@@ -160,7 +173,7 @@ func (s *Scraper) Scrape(updated time.Time) (Result, error) {
 			u, err := url.Parse(raw.Website)
 			website = parken.URL{URL: u}
 			if err != nil {
-				return res, fmt.Errorf("parsing website’s URL: %w", err)
+				return res, fmt.Errorf("parsing website's URL: %w", err)
 			}
 		}
 		// to-do: Verify consistency between ID and name.
