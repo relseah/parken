@@ -7,3 +7,4 @@ Langfristig
 - Belegung laufend aktualisieren.
 - Scraping abbrechen, wenn Signal empfangen wurde.
 - Leere Felder nicht übertragen.
+- Ordnerstruktur optimieren (Ordner src erstellen)

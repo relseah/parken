@@ -134,9 +134,62 @@ function formatAddress(address) {
 	}, ${address.postalCode} ${address.town}`;
 }
 
+function toISODateString(date) {
+	pad = (number) => {
+		return number.toString().padStart(2, "0");
+	};
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+		date.getDate()
+	)}`;
+}
+
+function predict(parking, date) {
+	if (!parking.predictionCanvas) {
+		parking.predictionCanvas = document.createElement("canvas");
+		parking.predictionChart = new Chart(parking.predictionCanvas, {
+			type: "line",
+			data: {
+				datasets: [
+					{
+						label: "freie Parkplätze",
+						backgroundColor: "#005a8c",
+					},
+				],
+			},
+			options: {
+				spanGaps: true,
+				scales: {
+					x: {
+						type: "time",
+					},
+				},
+			},
+		});
+		parking.element.append(parking.predictionCanvas);
+	}
+	let to = new Date(date);
+	to.setDate(to.getDate() + 1);
+	fetch(
+		"http://localhost:5000/api/prediction?" +
+			new URLSearchParams({
+				id: parking.id,
+				from: date,
+				to: toISODateString(to),
+			})
+	)
+		.then((response) => response.json())
+		.then((result) => {
+			data = [];
+			Object.keys(result).forEach((time) => {
+				data.push({ x: time, y: result[time] });
+			});
+			parking.predictionChart.data.datasets[0].data = data;
+			parking.predictionChart.update();
+		});
+}
+
 function convertToElement(parking) {
 	let li = document.createElement("li");
-	li.append(document.createElement("hr"));
 	let navigationButton = createNavigationButton(parking.id, parking.name, 2);
 	li.append(navigationButton);
 	let infoButton = document.createElement("button");
@@ -146,6 +199,28 @@ function convertToElement(parking) {
 	infoButton.onclick = () => toggleInfo(parking);
 	infoButton.append(infoIcon);
 	li.append(infoButton);
+
+	let predictionForm = document.createElement("form");
+	predictionForm.action = "javascript:void(0);";
+	predictionForm.onsubmit = () => predict(parking, dateInput.value);
+
+	let dateInput = document.createElement("input");
+	dateInput.type = "date";
+	dateInput.required = true;
+	// Consider applying the class to the form instead of its inputs.
+	dateInput.className = "right";
+	let tomorrow = new Date();
+	tomorrow.setDate(tomorrow.getDate() + 1);
+	dateInput.min = toISODateString(tomorrow);
+
+	let predictionButton = document.createElement("button");
+	predictionButton.textContent = "Belegung vorhersagen";
+	predictionButton.className = "right";
+
+	predictionForm.append(predictionButton);
+	predictionForm.append(dateInput);
+	li.append(predictionForm);
+
 	let nameStrong = createNameStrong(parking);
 	nameStrong.onclick = () => {
 		highlightParkingElement(parking.element, false);
@@ -162,6 +237,7 @@ function convertToElement(parking) {
 	distanceDiv.append(distanceSpan);
 	li.append(distanceDiv);
 	parking.distanceSpan = distanceSpan;
+	li.append(document.createElement("hr"));
 	return li;
 }
 

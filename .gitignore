@@ -3,3 +3,10 @@ config.json
 dummy.json
 tiles
 .vscode
+__pycache__
+prediction/historical_data
+prediction/sklearn-venv
+prediction/data.csv
+prediction/target.csv
+prediction/model.dat
+screenshots
