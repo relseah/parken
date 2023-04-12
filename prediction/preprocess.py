@@ -3,16 +3,11 @@ import csv
 import re
 import sys
 from datetime import datetime
+from collections import deque
 
-from prediction import HISTORICAL_DATA_DIRECTORY, generate_sample
+import pendulum
 
-
-class Occupancy:
-    def __init__(self, time, spots):
-        self.time, self.spots = time, spots
-
-    def sample(self, parking_id):
-        return generate_sample(parking_id, self.time)
+from prediction import HISTORICAL_DATA_DIRECTORY, RAW_DATA_DIRECTORY, generate_lt_sample, generate_st_sample
 
 
 def save(filename, rows):
@@ -29,14 +24,22 @@ if __name__ == '__main__':
         if match is None:
             sys.exit("invalid filename for dump: " + filename)
         with open(os.path.join(HISTORICAL_DATA_DIRECTORY, filename), encoding='utf-8') as file:
-            occupancies = [Occupancy(datetime.fromisoformat(raw_occupancy['recvTime']), int(raw_occupancy['availableSpotNumber']))
-                           for raw_occupancy in csv.DictReader(file)]
+            occupancies = {pendulum.parse(raw_occupancy['observationDateTime']): int(raw_occupancy['availableSpotNumber'])
+                           for raw_occupancy in csv.DictReader(file)}
             raw_data[int(match.group(1))] = occupancies
-    data = []
-    target = []
+
+    data_long_term, data_short_term, target = [], [], []
+    if not os.path.exists(RAW_DATA_DIRECTORY):
+        os.mkdir(RAW_DATA_DIRECTORY)
     for parking_id, occupancies in raw_data.items():
-        for occupancy in occupancies:
-            data.append(occupancy.sample(parking_id))
-            target.append(occupancy.spots)
-    save('data.csv', data)
+        save(os.path.join(RAW_DATA_DIRECTORY, str(
+            parking_id) + '.csv'), occupancies.items())
+        for dt, spots in occupancies.items():
+            long_term_sample = generate_lt_sample(parking_id, dt)
+            data_long_term.append(long_term_sample)
+            short_term_sample = generate_st_sample(parking_id, dt, occupancies)
+            data_short_term.append(short_term_sample)
+            target.append(spots)
+    save('data-long-term.csv', data_long_term)
+    save('data-short-term.csv', data_short_term)
     save('target.csv', [target])

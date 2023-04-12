@@ -188,6 +188,52 @@ function predict(parking, date) {
 		});
 }
 
+function predictToday() {
+	let canvas = document.getElementById("prediction-today");
+	let chart = new Chart(canvas, {
+		type: "line",
+		data: {
+			datasets: [
+				{
+					label: "freie Parkplätze (real)",
+				},
+				{
+					label: "freie Parkplätze (vorhergesagt)",
+					backgroundColor: "#005a8c",
+				},
+			],
+		},
+		options: {
+			spanGaps: true,
+			scales: {
+				x: {
+					type: "time",
+				},
+			},
+		},
+	});
+	fetch("http://localhost:5000/api/true-occupancy")
+		.then((response) => response.json())
+		.then((result) => {
+			data = [];
+			Object.keys(result).forEach((time) => {
+				data.push({ x: time, y: result[time] });
+			});
+			chart.data.datasets[0].data = data;
+			chart.update();
+		});
+	fetch("http://localhost:5000/api/prediction-today?id=0")
+		.then((response) => response.json())
+		.then((result) => {
+			data = [];
+			Object.keys(result).forEach((time) => {
+				data.push({ x: time, y: result[time] });
+			});
+			chart.data.datasets[1].data = data;
+			chart.predictionChart.update();
+		});
+}
+
 function convertToElement(parking) {
 	let li = document.createElement("li");
 	let navigationButton = createNavigationButton(parking.id, parking.name, 2);
@@ -237,6 +283,11 @@ function convertToElement(parking) {
 	distanceDiv.append(distanceSpan);
 	li.append(distanceDiv);
 	parking.distanceSpan = distanceSpan;
+	if (parking.id == 0) {
+		let predictionTodayCanvas = document.createElement("canvas");
+		predictionTodayCanvas.id = "prediction-today";
+		li.append(predictionTodayCanvas);
+	}
 	li.append(document.createElement("hr"));
 	return li;
 }
@@ -427,6 +478,7 @@ fetch("/api/parkings")
 		}
 		parkings = result.parkings;
 		displayParkings();
+		predictToday();
 		chargingStationsCheckbox.disabled = false;
 		if (latestPosition) processPosition(latestPosition);
 		locateControl.options.onPosition = processPosition;

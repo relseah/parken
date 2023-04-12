@@ -31,9 +31,8 @@ r = requests.get(
 parser = DataIDHTMLParser()
 parser.feed(r.text)
 
-folder = 'historical_data'
-if not os.path.exists(folder):
-    os.mkdir(folder)
+if not os.path.exists(HISTORICAL_DATA_DIRECTORY):
+    os.mkdir(HISTORICAL_DATA_DIRECTORY)
 for name, data_id in parser.data_ids.items():
     # dirty
     # not tested, how os.path.join would handle slashes in name

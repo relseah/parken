@@ -4,9 +4,11 @@ dummy.json
 tiles
 .vscode
 __pycache__
-prediction/historical_data
-prediction/sklearn-venv
-prediction/data.csv
-prediction/target.csv
-prediction/model.dat
 screenshots
+prediction/historical-data
+prediction/venv
+prediction/data*.csv
+prediction/target.csv
+prediction/model*.dat
+prediction/raw-data
+prediction/showcase

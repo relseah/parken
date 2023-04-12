@@ -7,4 +7,8 @@ Langfristig
 - Belegung laufend aktualisieren.
 - Scraping abbrechen, wenn Signal empfangen wurde.
 - Leere Felder nicht übertragen.
-- Ordnerstruktur optimieren (Ordner src erstellen)
+- Ordnerstruktur optimieren (Ordner src erstellen).
+- time in dt umbennen.
+- Zeitumstellung beachten.
+- Preise bearbeiten.
+- Loss-Funktion wechseln.
